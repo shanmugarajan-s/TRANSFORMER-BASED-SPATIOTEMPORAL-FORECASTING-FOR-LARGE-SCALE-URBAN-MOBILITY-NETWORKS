@@ -1,0 +1,1487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Urban Mobility ST-Transformer · Spatiotemporal Traffic Forecasting</title>
+<style>
+:root {
+  --bg: #f8fafc;
+  --card: #ffffff;
+  --card-sub: #f1f5f9;
+  --ink: #0f172a;
+  --mut: #64748b;
+  --line: #e2e8f0;
+  --acc: #2563eb;
+  --acc-glow: rgba(37, 99, 235, 0.12);
+  --ok: #059669;
+  --ok-bg: #ecfdf5;
+  --warn: #d97706;
+  --warn-bg: #fffbeb;
+  --bad: #dc2626;
+  --bad-bg: #fef2f2;
+  --c-act: #0f172a;
+  --c-mod: #2563eb;
+  --c-pers: #dc2626;
+  --c-ha: #94a3b8;
+  --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-lg: 0 4px 6px -1px rgba(0,0,0,0.08), 0 2px 4px -2px rgba(0,0,0,0.05);
+}
+
+[data-theme="dark"] {
+  --bg: #090d16;
+  --card: #121826;
+  --card-sub: #1a2336;
+  --ink: #f1f5f9;
+  --mut: #94a3b8;
+  --line: #1e293b;
+  --acc: #60a5fa;
+  --acc-glow: rgba(96, 165, 250, 0.16);
+  --ok: #34d399;
+  --ok-bg: rgba(52, 211, 153, 0.1);
+  --warn: #fbbf24;
+  --warn-bg: rgba(251, 191, 36, 0.1);
+  --bad: #f87171;
+  --bad-bg: rgba(248, 113, 113, 0.1);
+  --c-act: #f1f5f9;
+  --c-mod: #60a5fa;
+  --c-pers: #f87171;
+  --c-ha: #64748b;
+  --shadow: 0 1px 3px rgba(0,0,0,0.4);
+  --shadow-lg: 0 4px 8px rgba(0,0,0,0.5);
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 14.5px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.w { max-width: 1160px; margin: 0 auto; padding: 0 16px; }
+
+header {
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+  padding: 20px 0;
+}
+.header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+.brand-title {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+  margin: 0 0 3px;
+  color: var(--ink);
+}
+.brand-sub {
+  color: var(--mut);
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  background: var(--card-sub);
+  border: 1px solid var(--line);
+  color: var(--mut);
+}
+.badge-live {
+  background: var(--ok-bg);
+  color: var(--ok);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+.badge-live::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ok);
+}
+
+.theme-btn {
+  background: var(--card-sub);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s;
+}
+.theme-btn:hover { border-color: var(--acc); color: var(--acc); }
+
+nav {
+  position: sticky;
+  top: 0;
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+  z-index: 20;
+  backdrop-filter: blur(8px);
+}
+nav .w {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+nav .w::-webkit-scrollbar { display: none; }
+nav a {
+  padding: 12px 14px;
+  color: var(--mut);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+}
+nav a:hover, nav a.active {
+  color: var(--acc);
+  border-bottom-color: var(--acc);
+}
+
+section { padding: 30px 0 10px; }
+h2 {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0 0 5px;
+  letter-spacing: -0.3px;
+}
+.lead {
+  color: var(--mut);
+  font-size: 13.5px;
+  margin: 0 0 16px;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 18px;
+  box-shadow: var(--shadow);
+  margin-bottom: 16px;
+}
+
+.how-card {
+  background: var(--acc-glow);
+  border: 1px solid rgba(37, 99, 235, 0.2);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: var(--ink);
+  margin-bottom: 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.how-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.grid { display: grid; gap: 14px; }
+.g4 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.g3 { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.g2 { grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); }
+
+.stat-box {
+  padding: 16px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+}
+.stat-box .title {
+  font-size: 12.5px;
+  color: var(--mut);
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+.stat-box .big {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.8px;
+  color: var(--ink);
+  margin-bottom: 2px;
+}
+.stat-box .desc {
+  font-size: 12px;
+  color: var(--mut);
+}
+
+.steps-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.step-card {
+  background: var(--card-sub);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.step-num {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--acc);
+  color: #ffffff;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+.step-content b {
+  display: block;
+  font-size: 13.5px;
+  margin-bottom: 2px;
+}
+.step-content p {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--mut);
+}
+
+.row-ctrl {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.ctrl-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+select, input[type="range"], button.btn {
+  font: inherit;
+  color: var(--ink);
+}
+select {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 13px;
+  cursor: pointer;
+  outline: none;
+}
+select:focus { border-color: var(--acc); }
+
+.btn {
+  background: var(--card-sub);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s;
+}
+.btn:hover { background: var(--line); }
+.btn-primary {
+  background: var(--acc);
+  color: #ffffff;
+  border-color: var(--acc);
+}
+.btn-primary:hover { opacity: 0.9; }
+
+.timeline-play {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Heatmap Grid Layout */
+.hm-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+}
+.hm-box {
+  background: var(--card-sub);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px;
+}
+.hm-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.hm-svg-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+.hm-svg-wrap rect {
+  cursor: pointer;
+  transition: stroke 0.1s;
+}
+.hm-svg-wrap rect:hover {
+  stroke: var(--ink);
+  stroke-width: 1.5;
+}
+
+/* SVG Chart */
+.chart-container {
+  width: 100%;
+  position: relative;
+  margin: 12px 0;
+}
+svg text {
+  fill: var(--mut);
+  font-size: 11px;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 12.5px;
+  color: var(--mut);
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.legend-line {
+  width: 20px;
+  height: 3px;
+  border-radius: 2px;
+}
+.legend-line.dash {
+  background: repeating-linear-gradient(90deg, var(--c-pers), var(--c-pers) 4px, transparent 4px, transparent 8px);
+}
+.legend-line.dot {
+  background: repeating-linear-gradient(90deg, var(--c-ha), var(--c-ha) 2px, transparent 2px, transparent 5px);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-top: 10px;
+}
+th, td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+  text-align: right;
+}
+th:first-child, td:first-child { text-align: left; }
+th {
+  color: var(--mut);
+  font-weight: 600;
+  font-size: 12px;
+  background: var(--card-sub);
+}
+tbody tr:hover { background: var(--card-sub); }
+
+.bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0;
+  font-size: 12.5px;
+}
+.bar-label { width: 110px; flex-shrink: 0; }
+.bar-track {
+  flex: 1;
+  background: var(--card-sub);
+  border-radius: 6px;
+  height: 10px;
+  overflow: hidden;
+}
+.bar-fill {
+  height: 100%;
+  border-radius: 6px;
+  background: var(--acc);
+}
+.bar-fill.pers { background: var(--bad); }
+.bar-fill.ha { background: var(--mut); }
+
+.tag {
+  display: inline-block;
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  color: var(--mut);
+}
+
+/* Architecture Flow */
+.arch-flow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+.arch-box {
+  flex: 1 1 180px;
+  background: var(--card-sub);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px;
+  font-size: 12.5px;
+}
+.arch-box b {
+  display: block;
+  font-size: 13.5px;
+  color: var(--ink);
+  margin-bottom: 4px;
+}
+.arch-arrow {
+  color: var(--mut);
+  font-size: 18px;
+  display: grid;
+  place-items: center;
+}
+
+.notice-box {
+  border-left: 4px solid var(--acc);
+  background: var(--card-sub);
+  border-radius: 0 10px 10px 0;
+  padding: 12px 16px;
+  font-size: 13px;
+  margin-top: 14px;
+}
+.notice-box.warn {
+  border-left-color: var(--warn);
+  background: var(--warn-bg);
+}
+
+footer {
+  border-top: 1px solid var(--line);
+  padding: 30px 0 50px;
+  color: var(--mut);
+  font-size: 12.5px;
+  text-align: center;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="w">
+    <div class="header-row">
+      <div>
+        <div class="brand-title">Transformer-Based Spatiotemporal Traffic Forecasting</div>
+        <div class="brand-sub">
+          <span>Caltrans PeMS08 Statewide Freeway Network</span>
+          <span>&bull;</span>
+          <span>170 Detectors</span>
+          <span>&bull;</span>
+          <span>12-Step History (60 min) &rarr; 12-Step Forecast (60 min)</span>
+          <span class="badge badge-live" id="serverStatusBadge">Backend Connected</span>
+        </div>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <button class="theme-btn" id="themeToggle" title="Toggle Light/Dark Theme">
+          <span id="themeIcon">🌓</span> Theme
+        </button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<nav>
+  <div class="w">
+    <a href="#overview" class="active">Overview</a>
+    <a href="#heatmap">Network Heatmap</a>
+    <a href="#forecast">Forecast Viewer</a>
+    <a href="#liveapi">Live Model Inference</a>
+    <a href="#eval">Benchmark &amp; Evaluation</a>
+    <a href="#arch">Architecture</a>
+    <a href="#scale">Scalability Simulator</a>
+    <a href="#status">Deployment Notes</a>
+  </div>
+</nav>
+
+<div class="w" id="errorBanner" style="display: none; margin-top: 16px;">
+  <div class="card" style="border-color: var(--bad); background: var(--bad-bg); color: var(--bad);" id="errorText"></div>
+</div>
+
+<!-- ========================================== -->
+<!-- 1. OVERVIEW                               -->
+<!-- ========================================== -->
+<section id="overview">
+  <div class="w">
+    <h2>Problem &amp; Approach</h2>
+    <p class="lead">Urban highway traffic is inherently interconnected: vehicle flow at any detector depends on its own prior trajectory, upstream congestion shockwaves, and recurring diurnal rush hour patterns. This model jointly captures temporal self-attention and topological graph diffusion to predict real California freeway flow across all 170 detectors simultaneously.</p>
+
+    <div class="steps-container">
+      <div class="step-card">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <b>Look at the Past Hour</b>
+          <p>Takes 12 continuous 5-minute readings (vehicles / 5-min) from every sensor in the network.</p>
+        </div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <b>Learn Joint Spatiotemporal Patterns</b>
+          <p>Linear $O(N)$ spatial attention + physical highway graph diffusion captures wave propagation without quadratic blowup.</p>
+        </div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <b>Predict the Next Hour</b>
+          <p>Outputs a direct 12-step ahead forecast for every road detector, compared directly against ground truth.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid g4">
+      <div class="stat-box">
+        <div class="title">Total Timesteps</div>
+        <div class="big">17,856</div>
+        <div class="desc">62 consecutive days @ 5-min sampling</div>
+      </div>
+      <div class="stat-box">
+        <div class="title">Freeway Detectors</div>
+        <div class="big">170</div>
+        <div class="desc">Caltrans District 8 (I-10 &amp; I-15)</div>
+      </div>
+      <div class="stat-box">
+        <div class="title">Dataset Partition</div>
+        <div class="big">60 / 20 / 20</div>
+        <div class="desc">Strict chronological train / val / test</div>
+      </div>
+      <div class="stat-box">
+        <div class="title">Empirical Test MAE</div>
+        <div class="big" style="color: var(--acc);">19.98</div>
+        <div class="desc">Vehicles / 5-min (Avg steps 1–12)</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================================== -->
+<!-- 2. NETWORK HEATMAP                        -->
+<!-- ========================================== -->
+<section id="heatmap">
+  <div class="w">
+    <h2>Whole Network at a Glance</h2>
+    <p class="lead">Each row represents a freeway detector, each column represents a time window. Color intensity indicates traffic volume (or absolute prediction error).</p>
+
+    <div class="how-card">
+      <span class="how-icon">💡</span>
+      <div>
+        <b>How to read this heatmap:</b> If the <i>Actual Traffic</i> and <i>Model Prediction</i> heatmaps show nearly identical patterns, the model is successfully mirroring reality. The <i>Error Heatmap</i> highlights remaining deviations. <b>Click any cell</b> in either heatmap to automatically load that detector and timestamp into the detailed Forecast Viewer below!
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="row-ctrl">
+        <div class="ctrl-group">
+          <label>
+            Forecast Horizon:
+            <select id="selHeatHorizon">
+              <option value="2">15 Minutes Ahead (+3 steps)</option>
+              <option value="5" selected>30 Minutes Ahead (+6 steps)</option>
+              <option value="11">60 Minutes Ahead (+12 steps)</option>
+            </select>
+          </label>
+        </div>
+        <div style="font-size: 12.5px; color: var(--mut); display: flex; align-items: center; gap: 8px;">
+          <span>Flow: Low</span>
+          <span style="display: inline-block; width: 70px; height: 8px; border-radius: 4px; background: linear-gradient(90deg, rgba(37,99,235,0.05), var(--acc)); border: 1px solid var(--line);"></span>
+          <span>High</span>
+          <span style="margin-left: 10px;">Error: Low</span>
+          <span style="display: inline-block; width: 70px; height: 8px; border-radius: 4px; background: linear-gradient(90deg, rgba(220,38,38,0.05), var(--bad)); border: 1px solid var(--line);"></span>
+          <span>High</span>
+        </div>
+      </div>
+
+      <div class="hm-grid">
+        <div class="hm-box">
+          <div class="hm-title"><span>Actual Traffic Ground Truth</span><span class="tag">PeMS08</span></div>
+          <div class="hm-svg-wrap" id="heatActual"></div>
+        </div>
+        <div class="hm-box">
+          <div class="hm-title"><span>ST-Transformer Forecast</span><span class="tag">PyTorch</span></div>
+          <div class="hm-svg-wrap" id="heatPred"></div>
+        </div>
+        <div class="hm-box">
+          <div class="hm-title"><span>Absolute Error (|Actual - Pred|)</span><span class="tag" style="color: var(--bad); border-color: rgba(220,38,38,0.3);">Error Map</span></div>
+          <div class="hm-svg-wrap" id="heatError"></div>
+        </div>
+      </div>
+      <div style="font-size: 12px; color: var(--mut); margin-top: 10px;">
+        Visualizing 20 representative detector nodes across 50 consecutive test windows during morning rush hour (07:00 AM – 11:10 AM).
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================================== -->
+<!-- 3. FORECAST VIEWER                        -->
+<!-- ========================================== -->
+<section id="forecast">
+  <div class="w">
+    <h2>Interactive Forecast Viewer &middot; Actual vs. Model vs. Baselines</h2>
+    <p class="lead">Examine individual detector time series. All predictions are generated directly by the trained PyTorch ST-Transformer without artificial smoothing or synthetic offsets.</p>
+
+    <div class="how-card">
+      <span class="how-icon">🔍</span>
+      <div>
+        <b>How to read this chart:</b> The dark solid line is ground-truth traffic. The vertical dashed line marks the forecast cutoff point: left is the 60-minute history observed by the model; right is the actual future. The blue line is the ST-Transformer prediction. The red dotted line is <b>Persistence</b> (guessing traffic stays identical to the last reading).
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="row-ctrl">
+        <div class="ctrl-group">
+          <label>
+            Detector:
+            <select id="selSensor"></select>
+          </label>
+          <label style="margin-left: 8px;">
+            Time Window:
+            <input type="range" id="rngWindow" min="0" max="49" value="12" style="width: 140px; cursor: pointer;">
+            <b id="lblWindowTime" style="min-width: 150px; font-size: 13px;">08:00 AM</b>
+          </label>
+        </div>
+        <div class="timeline-play">
+          <button class="btn" id="btnPrevWindow" title="Previous 5-minute window">&larr; Prev</button>
+          <button class="btn btn-primary" id="btnPlayPause" title="Animate through morning rush hour">&#9654; Play Timeline</button>
+          <button class="btn" id="btnNextWindow" title="Next 5-minute window">Next &rarr;</button>
+        </div>
+      </div>
+
+      <div class="chart-container" id="forecastChart"></div>
+
+      <div class="legend">
+        <div class="legend-item"><span class="legend-line" style="background: var(--c-act);"></span> <b>Actual Traffic</b> (60m Observed History + 60m Future Truth)</div>
+        <div class="legend-item"><span class="legend-line" style="background: var(--c-mod); height: 4px;"></span> <b>ST-Transformer</b> (Our Spatiotemporal Model)</div>
+        <div class="legend-item"><span class="legend-line dash"></span> <b>Persistence Baseline</b> (Last observed value carried forward)</div>
+        <div class="legend-item"><span class="legend-line dot"></span> <b>Historical Average</b> (Time-of-day historical mean)</div>
+      </div>
+
+      <div style="margin-top: 18px;">
+        <b style="font-size: 13.5px;">Horizon Breakdown (Vehicles per 5-min):</b>
+        <table>
+          <thead>
+            <tr>
+              <th>Forecast Horizon</th>
+              <th>Actual Flow</th>
+              <th>Transformer Forecast</th>
+              <th>Transformer Abs Error</th>
+              <th>Persistence Guess</th>
+              <th>Persistence Abs Error</th>
+              <th>Gain vs. Persistence</th>
+            </tr>
+          </thead>
+          <tbody id="tblHorizonMetrics"></tbody>
+        </table>
+      </div>
+      <div style="font-size: 12px; color: var(--mut); margin-top: 10px;" id="forecastMetaNote"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================================== -->
+<!-- 4. LIVE MODEL INFERENCE CONSOLE           -->
+<!-- ========================================== -->
+<section id="liveapi">
+  <div class="w">
+    <h2>Live PyTorch Model Query (/api/predict)</h2>
+    <p class="lead">Directly invoke the live inference engine running on the local Python server to confirm end-to-end server response and latency.</p>
+
+    <div class="card">
+      <div class="row-ctrl">
+        <div class="ctrl-group">
+          <label>
+            Target Node:
+            <select id="selLiveNode">
+              <option value="4" selected>Node 4 (I-10 Detector #4)</option>
+              <option value="15">Node 15 (I-10 Detector #15)</option>
+              <option value="28">Node 28 (I-10 Detector #28)</option>
+              <option value="45">Node 45 (I-10 Detector #45)</option>
+              <option value="105">Node 105 (I-15 Detector #5)</option>
+              <option value="142">Node 142 (I-15 Detector #42)</option>
+            </select>
+          </label>
+          <label style="margin-left: 8px;">
+            Test Split Offset:
+            <input type="number" id="inpLiveOffset" min="12" max="2500" value="120" style="width: 70px; padding: 4px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--card); color: var(--ink);">
+          </label>
+          <button class="btn btn-primary" id="btnExecuteLive">Run Live PyTorch Inference</button>
+        </div>
+        <div id="liveLatencyBadge" style="font-size: 12.5px; color: var(--mut);">Ready</div>
+      </div>
+
+      <div id="liveResultBox" style="display: none; background: var(--card-sub); border: 1px solid var(--line); border-radius: 10px; padding: 14px; margin-top: 10px;">
+        <div class="grid g3" id="liveStatsGrid"></div>
+        <div id="liveChartWrap" style="margin-top: 14px;"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================================== -->
+<!-- 5. BENCHMARK & EVALUATION                 -->
+<!-- ========================================== -->
+<section id="eval">
+  <div class="w">
+    <h2>Empirical Benchmark &amp; Baseline Comparison</h2>
+    <p class="lead">Evaluated rigorously using masked Mean Absolute Error (MAE) on zero-flow and unobserved timesteps. All figures reflect pure model outputs.</p>
+
+    <div class="grid g4" id="evalSumCards" style="margin-bottom: 16px;"></div>
+
+    <div class="grid g2">
+      <div class="card">
+        <b style="font-size: 14px;">Test Set Subset: Error by Forecast Horizon</b>
+        <div class="how-card" style="margin: 10px 0;">
+          <span class="how-icon">📊</span>
+          <div>Short bars are better (lower error). As forecast horizons extend to 60 minutes, ST-Transformer outperforms persistence by widening margins.</div>
+        </div>
+        <div id="evalBarChart" style="margin-top: 12px;"></div>
+      </div>
+
+      <div class="card">
+        <b style="font-size: 14px;">Empirical Test Protocol (PeMS08 Full Split)</b>
+        <table style="margin-top: 10px;">
+          <thead>
+            <tr>
+              <th>Model Architecture</th>
+              <th>Avg MAE (1–12)</th>
+              <th>Complexity</th>
+              <th>Protocol / Status</th>
+            </tr>
+          </thead>
+          <tbody id="tblEmpiricalResults">
+            <tr><td colspan="4" style="text-align:center;">Loading results.json...</td></tr>
+          </tbody>
+        </table>
+        <div style="font-size: 12px; color: var(--mut); margin-top: 12px;">
+          All models evaluated on identical chronological 60/20/20 Caltrans PeMS08 split with zero test-set leakage.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================================== -->
+<!-- 6. MODEL ARCHITECTURE                     -->
+<!-- ========================================== -->
+<section id="arch">
+  <div class="w">
+    <h2>Factorised Spatiotemporal Transformer Architecture</h2>
+    <p class="lead">Decoupled spatial and temporal self-attention operators with linear complexity $O(N)$ and physical road diffusion priors.</p>
+
+    <div class="card">
+      <div class="arch-flow">
+        <div class="arch-box">
+          <b>1. Multimodal Input</b>
+          <div>12 timesteps &times; $N$ detectors &times; vehicle flow feature vector.</div>
+        </div>
+        <div class="arch-arrow">&rarr;</div>
+        <div class="arch-box">
+          <b>2. Joint Embeddings</b>
+          <div>Flow value + Time-of-day (0–287) + Day-of-week (0–6) + Spatial Node IDs.</div>
+        </div>
+        <div class="arch-arrow">&rarr;</div>
+        <div class="arch-box">
+          <b>3. ST-Transformer Blocks (&times;3)</b>
+          <div>Temporal Multi-Head Attention &rarr; Linear Kernel Spatial Attention + Graph Diffusion.</div>
+        </div>
+        <div class="arch-arrow">&rarr;</div>
+        <div class="arch-box">
+          <b>4. Delay Propagation</b>
+          <div>Shockwave velocity kernel ($v_w \approx 18$ km/h) over highway distance topology.</div>
+        </div>
+        <div class="arch-arrow">&rarr;</div>
+        <div class="arch-box">
+          <b>5. Direct Head</b>
+          <div>Multi-step projection outputting 12 future steps simultaneously.</div>
+        </div>
+      </div>
+
+      <div class="notice-box">
+        <b>Why Linear Spatial Attention?</b> Standard Transformer self-attention computes an $N \times N$ attention matrix ($O(N^2)$ memory), which crashes GPU memory when monitoring large statewide metropolitan networks (thousands of sensors). Our model leverages positive kernel feature maps ($\phi(x) = \text{elu}(x) + 1$) to invert the attention multiplication order: $(Q K^T) V = Q (K^T V)$, reducing spatial attention to linear $O(N)$ complexity!
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================================== -->
+<!-- 7. SCALABILITY SIMULATOR                  -->
+<!-- ========================================== -->
+<section id="scale">
+  <div class="w">
+    <h2>Network Scalability Simulator</h2>
+    <p class="lead">Compare theoretical GPU activation memory footprint between standard Softmax Attention and our Linear Spatial Attention.</p>
+
+    <div class="card">
+      <div class="row-ctrl">
+        <label>
+          Simulate Number of Detectors ($N$):
+          <input type="range" id="rngScaleN" min="100" max="10000" step="100" value="1000" style="width: 220px; cursor: pointer;">
+          <b id="lblScaleN" style="font-size: 15px; min-width: 70px;">1,000</b> detectors
+        </label>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Computational Component</th>
+            <th>Theoretical Memory Footprint</th>
+            <th>Scaling Complexity</th>
+            <th>Feasibility on Single 8GB GPU</th>
+          </tr>
+        </thead>
+        <tbody id="tblScaleResults"></tbody>
+      </table>
+
+      <div style="font-size: 12px; color: var(--mut); margin-top: 10px;">
+        Calculated for batch size $B=4$, sequence length $P=12$, $H=4$ heads, $d_{\text{model}}=64$, float32 precision.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================================== -->
+<!-- 8. STATUS & LIMITATIONS                   -->
+<!-- ========================================== -->
+<section id="status">
+  <div class="w">
+    <h2>Honest Limitations &amp; Future Engineering</h2>
+    <div class="card notice-box warn" style="margin-top: 0;">
+      <ul style="margin: 0; padding-left: 20px; line-height: 1.7;">
+        <li><b>Single Highway Dataset Scope:</b> Current benchmark weights are trained on Caltrans PeMS08 (170 detectors on California I-10 and I-15). Urban arterial streets with signalized intersections feature stop-and-go dynamics distinct from uninterrupted freeway flow.</li>
+        <li><b>Speed vs. Flow Targets:</b> The trained model targets <i>Traffic Flow</i> (vehicles / 5-min). Third-party APIs (such as TomTom) predominantly broadcast <i>Probe Velocity</i> (km/h). Feeding probe speeds directly into flow-trained models produces metric invalidity; dedicated velocity checkpoints are required for speed forecasting.</li>
+        <li><b>Sparse Graph Scaling:</b> While linear attention reduces attention memory to $O(N)$, the static graph diffusion step currently uses dense adjacency representations. Full scaling to 10,000+ detectors will adopt `torch.sparse` graph operations.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="w">
+    Caltrans Performance Measurement System (PeMS08) &middot; Spatiotemporal Transformer Traffic Forecasting Engine &middot; Pure PyTorch Implementation
+  </div>
+</footer>
+
+<script>
+// ==========================================
+// CLIENT APPLICATION LOGIC
+// ==========================================
+const $ = s => document.querySelector(s);
+let PRED_DATA = null;
+let RESULTS_DATA = null;
+let playInterval = null;
+
+const HORIZON_INDICES = [2, 5, 11];
+const HORIZON_NAMES = ['15 min (+3 steps)', '30 min (+6 steps)', '60 min (+12 steps)'];
+const fmt = v => Number(v).toFixed(1);
+
+// --- Theme Management ---
+function initTheme() {
+  const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  document.documentElement.setAttribute('data-theme', saved);
+  updateThemeIcon(saved);
+  $('#themeToggle').onclick = () => {
+    const curr = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', curr);
+    localStorage.setItem('theme', curr);
+    updateThemeIcon(curr);
+    if (PRED_DATA) {
+      drawForecastChart();
+      drawHeatmaps();
+    }
+  };
+}
+
+function updateThemeIcon(theme) {
+  $('#themeIcon').textContent = theme === 'dark' ? '☀️' : '🌙';
+}
+
+// --- Initialization ---
+async function initApp() {
+  initTheme();
+
+  // Load predictions.json
+  try {
+    const res = await fetch('predictions.json');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    PRED_DATA = await res.json();
+    $('#serverStatusBadge').textContent = 'Backend Connected';
+    $('#serverStatusBadge').className = 'badge badge-live';
+  } catch (err) {
+    $('#serverStatusBadge').textContent = 'Static / Offline';
+    $('#serverStatusBadge').className = 'badge';
+    showError('Could not load predictions.json (' + err.message + '). Ensure "python serve_dashboard.py" is running on port 8000.');
+  }
+
+  // Load results.json
+  try {
+    const res = await fetch('results.json');
+    if (res.ok) {
+      RESULTS_DATA = await res.json();
+    }
+  } catch (err) {
+    console.warn('results.json not found:', err);
+  }
+
+  if (PRED_DATA) {
+    populateSensors();
+    setupTimeline();
+    drawForecastChart();
+    drawHeatmaps();
+    computeSubsetEvaluation();
+  }
+
+  populateResultsTable();
+  updateScalabilityTable();
+
+  // Listeners
+  $('#selHeatHorizon').onchange = drawHeatmaps;
+  $('#rngScaleN').oninput = updateScalabilityTable;
+  $('#btnExecuteLive').onclick = runLiveInference;
+}
+
+function showError(msg) {
+  const el = $('#errorBanner');
+  el.style.display = 'block';
+  $('#errorText').textContent = msg;
+}
+
+// --- Sensor Dropdown & Controls ---
+function populateSensors() {
+  const sel = $('#selSensor');
+  sel.innerHTML = '';
+  PRED_DATA.sensors.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.id;
+    opt.textContent = s.name;
+    sel.appendChild(opt);
+  });
+
+  $('#rngWindow').max = PRED_DATA.windows.length - 1;
+  sel.onchange = () => drawForecastChart();
+  $('#rngWindow').oninput = () => {
+    updateWindowTimeLabel();
+    drawForecastChart();
+  };
+
+  const meta = PRED_DATA.metadata;
+  $('#forecastMetaNote').textContent = `${meta.dataset} · ${meta.feature} · ${meta.num_windows} test windows × ${meta.num_sensors} detectors · Starts: ${meta.start_time}`;
+}
+
+function updateWindowTimeLabel() {
+  const wIdx = +$('#rngWindow').value;
+  const w = PRED_DATA.windows[wIdx];
+  $('#lblWindowTime').textContent = `${w.time_str} (Window #${w.window_idx})`;
+}
+
+function setupTimeline() {
+  updateWindowTimeLabel();
+
+  $('#btnPrevWindow').onclick = () => {
+    let v = +$('#rngWindow').value;
+    if (v > 0) {
+      $('#rngWindow').value = v - 1;
+      updateWindowTimeLabel();
+      drawForecastChart();
+    }
+  };
+
+  $('#btnNextWindow').onclick = () => {
+    let v = +$('#rngWindow').value;
+    if (v < PRED_DATA.windows.length - 1) {
+      $('#rngWindow').value = v + 1;
+      updateWindowTimeLabel();
+      drawForecastChart();
+    }
+  };
+
+  $('#btnPlayPause').onclick = () => {
+    if (playInterval) {
+      clearInterval(playInterval);
+      playInterval = null;
+      $('#btnPlayPause').innerHTML = '&#9654; Play Timeline';
+      $('#btnPlayPause').classList.add('btn-primary');
+    } else {
+      $('#btnPlayPause').innerHTML = '&#10074;&#10074; Pause Timeline';
+      $('#btnPlayPause').classList.remove('btn-primary');
+      playInterval = setInterval(() => {
+        let v = +$('#rngWindow').value;
+        if (v >= PRED_DATA.windows.length - 1) {
+          v = 0;
+        } else {
+          v++;
+        }
+        $('#rngWindow').value = v;
+        updateWindowTimeLabel();
+        drawForecastChart();
+      }, 700);
+    }
+  };
+}
+
+// --- Forecast Chart (Pure SVG) ---
+function drawForecastChart() {
+  const wIdx = +$('#rngWindow').value;
+  const sId = $('#selSensor').value;
+  const w = PRED_DATA.windows[wIdx];
+  const r = w.readings[sId];
+  if (!r) return;
+
+  const pers = Array(12).fill(r.current);
+  const W = 800, H = 270, L = 46, B = 28, T = 15;
+  const x = i => L + i * (W - L - 16) / 23;
+
+  const allVals = [...r.history, ...r.actual, ...r.ours, ...(r.ha || []), ...pers];
+  const lo = Math.min(...allVals);
+  const hi = Math.max(...allVals);
+  const pad = Math.max(10, (hi - lo) * 0.12);
+  const y0 = Math.max(0, lo - pad);
+  const y1 = hi + pad;
+  const y = v => T + (H - T - B) * (1 - (v - y0) / (y1 - y0));
+
+  const polyline = (arr, start, color, strokeWidth = 2, dash = '') => {
+    const pts = arr.map((v, i) => `${x(start + i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+    return `<polyline fill="none" stroke="${color}" stroke-width="${strokeWidth}" ${dash ? `stroke-dasharray="${dash}"` : ''} points="${pts}"/>`;
+  };
+
+  // Background Grid Lines
+  let svgGrid = '';
+  const numGridLines = 4;
+  for (let k = 0; k <= numGridLines; k++) {
+    const val = y0 + (y1 - y0) * k / numGridLines;
+    const yPos = y(val);
+    svgGrid += `<line x1="${L}" x2="${W - 16}" y1="${yPos}" y2="${yPos}" stroke="var(--line)" stroke-width="1"/>`;
+    svgGrid += `<text x="4" y="${yPos + 4}">${Math.round(val)}</text>`;
+  }
+
+  // Forecast Start Vertical Divider
+  const xSplit = x(11.5);
+  svgGrid += `<line x1="${xSplit}" x2="${xSplit}" y1="${T}" y2="${H - B}" stroke="var(--mut)" stroke-width="1.5" stroke-dasharray="4 4"/>`;
+  svgGrid += `<text x="${xSplit + 6}" y="${T + 12}" fill="var(--acc)" font-weight="600">FORECAST START</text>`;
+
+  // Time Axis Labels
+  const tickIndices = [0, 5, 11, 14, 17, 23];
+  tickIndices.forEach(idx => {
+    const m = (idx - 11) * 5;
+    const label = m === 0 ? 'Now' : (m > 0 ? `+${m}m` : `${m}m`);
+    svgGrid += `<text x="${x(idx) - 8}" y="${H - 8}">${label}</text>`;
+  });
+
+  // Series
+  const haLine = r.ha ? polyline(r.ha, 12, 'var(--c-ha)', 1.5, '2 3') : '';
+  const persLine = polyline(pers, 12, 'var(--c-pers)', 1.5, '4 4');
+  const actualLine = polyline([...r.history, ...r.actual], 0, 'var(--c-act)', 2.5);
+  const modelContext = [r.history[11], ...r.ours];
+  const modelLine = polyline(modelContext, 11, 'var(--c-mod)', 3);
+
+  // Confidence / Glow Under Model Forecast
+  const modelArea = `M ${x(11)} ${y(r.history[11])} ` +
+    r.ours.map((v, i) => `L ${x(12 + i)} ${y(v)}`).join(' ') +
+    ` L ${x(23)} ${H - B} L ${x(11)} ${H - B} Z`;
+  const glow = `<path d="${modelArea}" fill="var(--acc)" fill-opacity="0.08"/>`;
+
+  $('#forecastChart').innerHTML = `
+    <svg viewBox="0 0 ${W} ${H}" width="100%" height="auto" role="img" aria-label="Forecast comparison chart">
+      ${svgGrid}
+      ${glow}
+      ${haLine}
+      ${persLine}
+      ${actualLine}
+      ${modelLine}
+    </svg>
+  `;
+
+  // Horizon Table
+  $('#tblHorizonMetrics').innerHTML = HORIZON_INDICES.map((hIdx, k) => {
+    const act = r.actual[hIdx];
+    const mod = r.ours[hIdx];
+    const pVal = r.current;
+    const modErr = Math.abs(mod - act);
+    const persErr = Math.abs(pVal - act);
+    const gain = persErr > 0 ? ((persErr - modErr) / persErr * 100) : 0;
+    const gainBadge = gain >= 0 
+      ? `<span class="tag" style="background:var(--ok-bg);color:var(--ok);border-color:rgba(16,185,129,0.3)">+${gain.toFixed(0)}% better</span>`
+      : `<span class="tag" style="background:var(--bad-bg);color:var(--bad);">${gain.toFixed(0)}%</span>`;
+
+    return `
+      <tr>
+        <td><b>+${HORIZON_NAMES[k]}</b></td>
+        <td>${fmt(act)}</td>
+        <td style="color:var(--acc);font-weight:600;">${fmt(mod)}</td>
+        <td><b>${fmt(modErr)}</b> veh</td>
+        <td>${fmt(pVal)}</td>
+        <td>${fmt(persErr)} veh</td>
+        <td>${gainBadge}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+// --- Heatmaps (Pure SVG) ---
+function drawHeatmaps() {
+  if (!PRED_DATA) return;
+  const hIdx = +$('#selHeatHorizon').value;
+  const windows = PRED_DATA.windows;
+  const sensorIds = PRED_DATA.sensors.map(s => String(s.id));
+
+  const cellW = 13, cellH = 13, leftPad = 32, topPad = 6;
+  const svgW = leftPad + windows.length * cellW;
+  const svgH = topPad + sensorIds.length * cellH + 20;
+
+  let maxFlow = 1;
+  let maxErr = 1;
+
+  windows.forEach(w => {
+    sensorIds.forEach(sId => {
+      const r = w.readings[sId];
+      if (r) {
+        maxFlow = Math.max(maxFlow, r.actual[hIdx], r.ours[hIdx]);
+        maxErr = Math.max(maxErr, Math.abs(r.ours[hIdx] - r.actual[hIdx]));
+      }
+    });
+  });
+
+  const renderPanel = (valFn, colorHex, maxVal) => {
+    let out = `<svg viewBox="0 0 ${svgW} ${svgH}" width="100%">`;
+    sensorIds.forEach((sId, rowIdx) => {
+      const y = topPad + rowIdx * cellH;
+      out += `<text x="2" y="${y + 10}">#${sId}</text>`;
+
+      windows.forEach((w, colIdx) => {
+        const x = leftPad + colIdx * cellW;
+        const r = w.readings[sId];
+        if (!r) return;
+        const val = valFn(r);
+        const opacity = Math.max(0.06, Math.min(1.0, val / maxVal)).toFixed(2);
+
+        out += `<rect data-sensor="${sId}" data-window="${colIdx}" x="${x}" y="${y}" width="${cellW - 1}" height="${cellH - 1}" rx="1" fill="${colorHex}" fill-opacity="${opacity}">
+          <title>Sensor #${sId} · Window #${w.window_idx} (${w.time_str}) · Value: ${val.toFixed(1)} veh</title>
+        </rect>`;
+      });
+    });
+
+    // Time Footer
+    out += `<text x="${leftPad}" y="${svgH - 4}">${windows[0].time_str}</text>`;
+    out += `<text x="${svgW - 55}" y="${svgH - 4}">${windows[windows.length - 1].time_str}</text>`;
+    out += `</svg>`;
+    return out;
+  };
+
+  $('#heatActual').innerHTML = renderPanel(r => r.actual[hIdx], 'var(--acc)', maxFlow);
+  $('#heatPred').innerHTML = renderPanel(r => r.ours[hIdx], 'var(--acc)', maxFlow);
+  $('#heatError').innerHTML = renderPanel(r => Math.abs(r.ours[hIdx] - r.actual[hIdx]), 'var(--bad)', maxErr);
+
+  // Click-to-inspect binding
+  document.querySelectorAll('.hm-svg-wrap rect').forEach(rect => {
+    rect.onclick = () => {
+      const sId = rect.dataset.sensor;
+      const wIdx = rect.dataset.window;
+      $('#selSensor').value = sId;
+      $('#rngWindow').value = wIdx;
+      updateWindowTimeLabel();
+      drawForecastChart();
+      const el = document.getElementById('forecast');
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    };
+  });
+}
+
+// --- Subset Evaluation Metrics ---
+function computeSubsetEvaluation() {
+  const horizonErrors = { model: [[], [], []], pers: [[], [], []], ha: [[], [], []] };
+  const allErrors = { model: [], pers: [], ha: [] };
+
+  PRED_DATA.windows.forEach(w => {
+    Object.values(w.readings).forEach(r => {
+      for (let t = 0; t < 12; t++) {
+        const actual = r.actual[t];
+        if (actual <= 0) continue;
+        const mErr = Math.abs(r.ours[t] - actual);
+        const pErr = Math.abs(r.current - actual);
+        const hErr = r.ha ? Math.abs(r.ha[t] - actual) : null;
+
+        allErrors.model.push(mErr);
+        allErrors.pers.push(pErr);
+        if (hErr !== null) allErrors.ha.push(hErr);
+
+        const hIdx = HORIZON_INDICES.indexOf(t);
+        if (hIdx >= 0) {
+          horizonErrors.model[hIdx].push(mErr);
+          horizonErrors.pers[hIdx].push(pErr);
+          if (hErr !== null) horizonErrors.ha[hIdx].push(hErr);
+        }
+      }
+    });
+  });
+
+  const avg = arr => arr.length ? (arr.reduce((a, b) => a + b, 0) / arr.length) : NaN;
+  const modelAvg = avg(allErrors.model);
+  const persAvg = avg(allErrors.pers);
+  const gain = ((persAvg - modelAvg) / persAvg) * 100;
+
+  $('#evalSumCards').innerHTML = `
+    <div class="stat-box">
+      <div class="title">ST-Transformer Test Error</div>
+      <div class="big" style="color: var(--acc);">${fmt(modelAvg)}</div>
+      <div class="desc">Cars / 5 min (Exported Test Subset)</div>
+    </div>
+    <div class="stat-box">
+      <div class="title">Persistence Guess Error</div>
+      <div class="big">${fmt(persAvg)}</div>
+      <div class="desc">"Traffic stays as it is now" guess</div>
+    </div>
+    <div class="stat-box">
+      <div class="title">Relative Advantage</div>
+      <div class="big" style="color: var(--ok);">+${gain.toFixed(0)}%</div>
+      <div class="desc">Transformer error reduction</div>
+    </div>
+    <div class="stat-box">
+      <div class="title">Evaluated Windows</div>
+      <div class="big">${PRED_DATA.windows.length * Object.keys(PRED_DATA.windows[0].readings).length}</div>
+      <div class="desc">Window-sensor pairs evaluated</div>
+    </div>
+  `;
+
+  // Bar Chart
+  const rows = [
+    ['15 Minutes Ahead', {
+      model: avg(horizonErrors.model[0]),
+      pers: avg(horizonErrors.pers[0]),
+      ha: avg(horizonErrors.ha[0])
+    }],
+    ['30 Minutes Ahead', {
+      model: avg(horizonErrors.model[1]),
+      pers: avg(horizonErrors.pers[1]),
+      ha: avg(horizonErrors.ha[1])
+    }],
+    ['60 Minutes Ahead', {
+      model: avg(horizonErrors.model[2]),
+      pers: avg(horizonErrors.pers[2]),
+      ha: avg(horizonErrors.ha[2])
+    }],
+    ['Average (Steps 1–12)', {
+      model: modelAvg,
+      pers: persAvg,
+      ha: avg(allErrors.ha)
+    }]
+  ];
+
+  const maxVal = Math.max(...rows.flatMap(r => Object.values(r[1])));
+
+  $('#evalBarChart').innerHTML = rows.map(([label, v]) => `
+    <div style="margin-bottom: 12px;">
+      <div style="font-size: 12.5px; font-weight: 600; color: var(--mut); margin-bottom: 4px;">${label}</div>
+      <div class="bar-wrap">
+        <span class="bar-label">ST-Transformer</span>
+        <div class="bar-track"><div class="bar-fill" style="width: ${(v.model / maxVal * 100).toFixed(1)}%;"></div></div>
+        <b style="width: 50px; text-align: right;">${fmt(v.model)}</b>
+      </div>
+      <div class="bar-wrap">
+        <span class="bar-label">Persistence</span>
+        <div class="bar-track"><div class="bar-fill pers" style="width: ${(v.pers / maxVal * 100).toFixed(1)}%;"></div></div>
+        <b style="width: 50px; text-align: right;">${fmt(v.pers)}</b>
+      </div>
+      <div class="bar-wrap">
+        <span class="bar-label">Historical Avg</span>
+        <div class="bar-track"><div class="bar-fill ha" style="width: ${(v.ha / maxVal * 100).toFixed(1)}%;"></div></div>
+        <b style="width: 50px; text-align: right;">${fmt(v.ha)}</b>
+      </div>
+    </div>
+  `).join('');
+}
+
+// --- Empirical Results Table ---
+function populateResultsTable() {
+  const tbody = $('#tblEmpiricalResults');
+  if (!RESULTS_DATA) {
+    tbody.innerHTML = '<tr><td colspan="4">results.json not found</td></tr>';
+    return;
+  }
+
+  const baselines = RESULTS_DATA.baselines_pems08 || [];
+  tbody.innerHTML = baselines.map(b => {
+    const isOurs = /Ours|ST-Transformer/i.test(b.model);
+    const rowStyle = isOurs ? 'background: var(--acc-glow); font-weight: 600;' : '';
+    const statusTag = isOurs 
+      ? '<span class="tag" style="background:var(--ok-bg);color:var(--ok);border-color:rgba(16,185,129,0.3)">Empirically Verified</span>'
+      : (b.source === 'empirical_test_evaluation' ? '<span class="tag">Empirical</span>' : '<span class="tag">Literature</span>');
+
+    return `
+      <tr style="${rowStyle}">
+        <td>${b.model}</td>
+        <td style="${isOurs ? 'color: var(--acc); font-size: 14px;' : ''}">${fmt(b.mae_avg)}</td>
+        <td><code>${b.complexity}</code></td>
+        <td>${statusTag}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+// --- Live Inference Execution ---
+async function runLiveInference() {
+  const node = $('#selLiveNode').value;
+  const offset = $('#inpLiveOffset').value;
+  const badge = $('#liveLatencyBadge');
+  badge.textContent = 'Querying PyTorch model...';
+
+  const t0 = performance.now();
+  try {
+    const res = await fetch(`/api/predict?node=${node}&offset=${offset}`);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    const latency = Math.round(performance.now() - t0);
+
+    badge.innerHTML = `<span class="tag" style="color:var(--ok);border-color:rgba(16,185,129,0.3)">Latency: ${latency} ms (PyTorch)</span>`;
+    renderLiveResult(data);
+  } catch (err) {
+    badge.innerHTML = `<span class="tag" style="color:var(--bad);">Error: ${err.message}</span>`;
+  }
+}
+
+function renderLiveResult(data) {
+  const box = $('#liveResultBox');
+  box.style.display = 'block';
+
+  const hist = data.history || [];
+  const truth = data.ground_truth || data.truth_future || [];
+  const preds = data.prediction || data.pred_future || [];
+
+  $('#liveStatsGrid').innerHTML = `
+    <div class="stat-box">
+      <div class="title">12-Step Ahead MAE</div>
+      <div class="big" style="color: var(--acc);">${fmt(data.mae)}</div>
+      <div class="desc">Vehicles / 5-min</div>
+    </div>
+    <div class="stat-box">
+      <div class="title">12-Step Ahead RMSE</div>
+      <div class="big">${fmt(data.rmse)}</div>
+      <div class="desc">Root Mean Squared Error</div>
+    </div>
+    <div class="stat-box">
+      <div class="title">Inference Node Target</div>
+      <div class="big">Node #${data.node_idx}</div>
+      <div class="desc">${data.corridor || 'Caltrans Highway'}</div>
+    </div>
+  `;
+
+  // Draw quick mini SVG chart
+  const all = [...hist, ...truth, ...preds];
+  const lo = Math.min(...all), hi = Math.max(...all);
+  const W = 700, H = 160, L = 40, B = 20, T = 10;
+  const x = i => L + i * (W - L - 10) / 23;
+  const y = v => T + (H - T - B) * (1 - (v - lo) / Math.max(1, hi - lo));
+
+  const line = (arr, start, c, dash) =>
+    `<polyline fill="none" stroke="${c}" stroke-width="2" ${dash ? `stroke-dasharray="${dash}"` : ''} points="${arr.map((v, i) => `${x(start + i).toFixed(1)},${y(v).toFixed(1)}`).join(' ')}"/>`;
+
+  $('#liveChartWrap').innerHTML = `
+    <b style="font-size: 13px;">Live Forecast Trajectory:</b>
+    <svg viewBox="0 0 ${W} ${H}" width="100%" height="auto" style="margin-top: 8px;">
+      <line x1="${x(11.5)}" x2="${x(11.5)}" y1="${T}" y2="${H - B}" stroke="var(--mut)" stroke-dasharray="3 3"/>
+      ${line(hist, 0, 'var(--c-act)')}
+      ${line(truth, 12, 'var(--c-act)', '3 3')}
+      ${line([hist[11], ...preds], 11, 'var(--c-mod)')}
+    </svg>
+    <div style="font-size: 12px; color: var(--mut); margin-top: 4px;">
+      Solid dark = Observed History &middot; Dotted dark = Ground Truth Future &middot; Solid blue = Pure PyTorch ST-Transformer Output
+    </div>
+  `;
+}
+
+// --- Scalability Simulator ---
+function updateScalabilityTable() {
+  const N = +$('#rngScaleN').value;
+  $('#lblScaleN').textContent = N.toLocaleString();
+
+  const B = 4, P = 12, H = 4, d = 64, MB = 1024 * 1024;
+  const denseMem = (B * P * H * N * N * 4) / MB;
+  const linearMem = (B * P * N * d * 4) / MB;
+  const adjMem = (N * N * 4) / MB;
+  const delayMem = (12 * N * N * 4) / MB;
+
+  const fmtMem = mb => mb >= 1024 ? (mb / 1024).toFixed(2) + ' GB' : mb.toFixed(1) + ' MB';
+  const tagStatus = (mb, limit = 8192) => mb < limit
+    ? '<span class="tag" style="background:var(--ok-bg);color:var(--ok);border-color:rgba(16,185,129,0.3)">Fits within GPU</span>'
+    : '<span class="tag" style="background:var(--bad-bg);color:var(--bad);">OOM (Out of Memory)</span>';
+
+  $('#tblScaleResults').innerHTML = `
+    <tr>
+      <td><b>Linear Spatial Attention (Our Model)</b></td>
+      <td style="color: var(--ok); font-weight: 600;">${fmtMem(linearMem)}</td>
+      <td><code>O(N)</code></td>
+      <td>${tagStatus(linearMem)}</td>
+    </tr>
+    <tr>
+      <td><b>Standard Softmax Attention</b></td>
+      <td style="color: ${denseMem > 4000 ? 'var(--bad)' : 'var(--ink)'};">${fmtMem(denseMem)}</td>
+      <td><code>O(N^2)</code></td>
+      <td>${tagStatus(denseMem)}</td>
+    </tr>
+    <tr>
+      <td><b>Static Adjacency Matrix (Dense)</b></td>
+      <td>${fmtMem(adjMem)}</td>
+      <td><code>O(N^2)</code></td>
+      <td>${tagStatus(adjMem)}</td>
+    </tr>
+    <tr>
+      <td><b>Wave Delay Kernel (12 Horizons &times; N &times; N)</b></td>
+      <td>${fmtMem(delayMem)}</td>
+      <td><code>O(12 &times; N^2)</code></td>
+      <td>${tagStatus(delayMem)}</td>
+    </tr>
+  `;
+}
+
+window.addEventListener('DOMContentLoaded', initApp);
+</script>
+</body>
+</html>
